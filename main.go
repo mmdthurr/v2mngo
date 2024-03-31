@@ -16,8 +16,8 @@ import (
 )
 
 type User struct {
-	Uuid   string
-	Active bool
+	Uuid   string `redis:"uuid"`
+	Active bool   `redis:"active"`
 }
 
 func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
@@ -28,13 +28,12 @@ func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
 	switch update.Message.Text {
 	case "/start":
 		{
-			_, err := rdcli.HGetAll(context.Background(),
+			err := rdcli.HGetAll(context.Background(),
 				strconv.Itoa(update.Message.From.Id),
-			).Result()
+			).Err()
 
 			fmt.Printf("err: %v\n", err)
 			if err != nil {
-				fmt.Printf("val is empty \n")
 				uid := uuid.New()
 				rdcli.HSet(context.Background(), strconv.Itoa(update.Message.From.Id), User{
 					Uuid:   uid.String(),
@@ -43,19 +42,16 @@ func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
 				)
 			}
 
-			bt.SendMessage("@naharlo \n- /stat", update.Message.From.Id)
+			bt.SendMessage("@naharlo\n\n-/stat", update.Message.From.Id)
 		}
 	case "/stat":
 		{
 			var user User
-			err := rdcli.HGetAll(context.Background(),
+			rdcli.HGetAll(context.Background(),
 				strconv.Itoa(update.Message.From.Id),
 			).Scan(&user)
-			if err != nil {
-				fmt.Printf("err: %v\n", err)
-			}
 
-			bt.SendMessage(fmt.Sprintf("you - uuid: %s \n Active ", user.Uuid), update.Message.From.Id)
+			bt.SendMessage(fmt.Sprintf("uuid: %s \n\nactive: %v", user.Uuid, user.Active), update.Message.From.Id)
 		}
 
 	}
@@ -189,5 +185,5 @@ func main() {
 
 	})
 
-	http.ListenAndServe("0.0.0.0:4040", nil)
+	http.ListenAndServe("127.0.0.1:4040", nil)
 }
