@@ -32,17 +32,17 @@ func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
 				strconv.Itoa(update.Message.From.Id),
 			).Err()
 
-			fmt.Printf("err: %v\n", err)
 			if err != nil {
-				uid := uuid.New()
-				rdcli.HSet(context.Background(), strconv.Itoa(update.Message.From.Id), User{
-					Uuid:   uid.String(),
+				ui := uuid.New()
+				fmt.Printf("ui.String(): %v\n", ui.String())
+				rdcli.HMSet(context.Background(), strconv.Itoa(update.Message.From.Id), User{
+					Uuid:   ui.String(),
 					Active: false,
 				},
 				)
 			}
 
-			bt.SendMessage("@naharlo\n\n-/stat", update.Message.From.Id)
+			bt.SendMessage("@naharlo\n\n/stat", update.Message.From.Id)
 		}
 	case "/stat":
 		{
