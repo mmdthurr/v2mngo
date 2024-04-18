@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,18 +8,14 @@ import (
 	"mmd/v2mngo/v2rpc"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc"
 	"v2ray.com/core/common/uuid"
 )
 
-type User struct {
-	Uuid   string `redis:"uuid"`
-	Active bool   `redis:"active"`
-}
+var Users = make(map[int]string)
 
-func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
+func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 	bt := tg.Bot{
 		Token: tk,
 	}
@@ -28,30 +23,25 @@ func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
 	switch update.Message.Text {
 	case "/start":
 		{
-			err := rdcli.HGetAll(context.Background(),
-				strconv.Itoa(update.Message.From.Id),
-			).Err()
 
-			if err != nil {
-				ui := uuid.New()
-				fmt.Printf("ui.String(): %v\n", ui.String())
-				rdcli.HMSet(context.Background(), strconv.Itoa(update.Message.From.Id), User{
-					Uuid:   ui.String(),
-					Active: false,
-				},
-				)
+			user_uuid, ok := Users[update.Message.From.Id]
+
+			if ok {
+				used := v2rpc.GetUserStat(strconv.Itoa(update.Message.From.Id), cc)
+				bt.SendMessage(fmt.Sprintf("uuid: %s \n\n transfered: %d", user_uuid, used), update.Message.From.Id)
+
+			} else {
+				new_uuid := uuid.New()
+				Users[update.Message.From.Id] = new_uuid.String()
+				_, err := v2rpc.Adduser(new_uuid.String(), strconv.Itoa(update.Message.From.Id), cc)
+				if err != nil {
+					bt.SendMessage("failed", update.Message.From.Id)
+					return
+				}
+				bt.SendMessage(fmt.Sprintf("@naharlo \n\nuuid: %s", new_uuid.String()), update.Message.From.Id)
+
 			}
 
-			bt.SendMessage("@naharlo\n\n/stat", update.Message.From.Id)
-		}
-	case "/stat":
-		{
-			var user User
-			rdcli.HGetAll(context.Background(),
-				strconv.Itoa(update.Message.From.Id),
-			).Scan(&user)
-
-			bt.SendMessage(fmt.Sprintf("uuid: %s \n\nactive: %v", user.Uuid, user.Active), update.Message.From.Id)
 		}
 
 	}
@@ -59,19 +49,10 @@ func procIncome(update tg.Update, tk string, rdcli *redis.Client) {
 
 func main() {
 	hookp := flag.String("tg", "hook", "telegram hook endpoint")
-	admin_endpoint := flag.String("k", "kkdkkd", "admin endpoint key endpoint")
 
 	flag.Parse()
 
-	bt := tg.Bot{
-		Token: *hookp,
-	}
 	cc := v2rpc.GetGrpcConn("127.0.0.1:8081")
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
 
 	http.HandleFunc(fmt.Sprintf("/v2api/%s", *hookp), func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -83,105 +64,13 @@ func main() {
 					fmt.Printf("err: %v\n", err)
 				}
 				w.WriteHeader(http.StatusOK)
-				go procIncome(up, *hookp, redisClient)
+				go procIncome(up, *hookp, cc)
 			}
 		default:
 			{
-				w.Write([]byte("this is good "))
+				w.Write([]byte("200 Ok!"))
 			}
 		}
-
-	})
-
-	http.HandleFunc(fmt.Sprintf("/v2api/%s/", *admin_endpoint), func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		p := strings.Split(r.URL.Path, "/")
-
-		var mail string
-		if len(p) >= 3 {
-			mail = p[3]
-		} else {
-			mail = ""
-		}
-
-		if len(p) <= 2 {
-			w.Write([]byte(`{"endpointOk": true}`))
-			return
-		}
-
-		switch p[2] {
-		case "a":
-			{
-				usrUuid, err := redisClient.HGet(context.Background(), mail, "uuid").Result()
-				if err != nil {
-					w.Write([]byte(`{"ok": false}`))
-					return
-				}
-				_, err = v2rpc.Adduser(usrUuid, mail, cc)
-				if err != nil {
-					w.Write([]byte(`{"ok": false}`))
-					return
-				}
-				redisClient.HSet(context.Background(), mail, User{Uuid: usrUuid, Active: true})
-				id, _ := strconv.Atoi(mail)
-				bt.SendMessage(fmt.Sprintf("you are activated, configs are valid at http://ar3642.top/stat.html?uuid=%s", usrUuid), id)
-
-			}
-		case "da":
-			{
-				_, err := v2rpc.RemoveUser(mail, cc)
-				if err != nil {
-					w.Write([]byte(`{"ok": false}`))
-					return
-				}
-				id, _ := strconv.Atoi(mail)
-				bt.SendMessage("you are not active any more", id)
-
-			}
-		case "ls":
-			{
-				keys, err := redisClient.Keys(context.Background(), "*").Result()
-				if err != nil {
-					w.Write([]byte(`{"ok": false}`))
-					return
-				}
-				bj, _ := json.Marshal(map[string][]string{"keys": keys})
-				w.Write(bj)
-				return
-			}
-
-		}
-
-		w.Write([]byte(`{"ok":true}`))
-
-	})
-
-	http.HandleFunc("/v2api/user/", func(w http.ResponseWriter, r *http.Request) {
-
-		// /v2api/user/<mail>/<uuid>
-
-		p := strings.Split(r.URL.Path, "/")
-		userUuid := p[len(p)-1]
-		mail := p[len(p)-2]
-		usage := v2rpc.GetUserStat(mail, cc)
-
-		var usr User
-		err := redisClient.HGet(context.Background(), mail, "active").Scan(&usr)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		if usr.Uuid != userUuid {
-			w.WriteHeader(405)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(fmt.Sprintf(`{
-			"uuid":%s, 
-			"active":%v, 
-			"stat":%d
-		}`, usr.Uuid, usr.Active, usage)))
 
 	})
 
