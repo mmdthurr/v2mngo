@@ -40,7 +40,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 					log.Print("err: ", err)
 					return
 				}
-				bt.SendMessage(fmt.Sprintf("@naharlo \n\nuuid: %s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("consider join @naharlo - /start \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 
 			}
 
@@ -70,7 +70,7 @@ func main() {
 			}
 		default:
 			{
-				w.Write([]byte("200 Ok!"))
+				w.Write([]byte(fmt.Sprintf("%v", Users)))
 			}
 		}
 
