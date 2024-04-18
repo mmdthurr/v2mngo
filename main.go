@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"mmd/v2mngo/tg"
 	"mmd/v2mngo/v2rpc"
 	"net/http"
@@ -36,6 +37,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 				_, err := v2rpc.Adduser(new_uuid.String(), strconv.Itoa(update.Message.From.Id), cc)
 				if err != nil {
 					bt.SendMessage("failed", update.Message.From.Id)
+					log.Print("err: ", err)
 					return
 				}
 				bt.SendMessage(fmt.Sprintf("@naharlo \n\nuuid: %s", new_uuid.String()), update.Message.From.Id)
@@ -52,7 +54,7 @@ func main() {
 
 	flag.Parse()
 
-	cc := v2rpc.GetGrpcConn("127.0.0.1:8081")
+	cc := v2rpc.GetGrpcConn("127.0.0.1:8080")
 
 	http.HandleFunc(fmt.Sprintf("/v2api/%s", *hookp), func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
