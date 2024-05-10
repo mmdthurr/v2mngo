@@ -66,15 +66,17 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 
 func main() {
 	tgToken := flag.String("tg", "bot123", "telegram token")
+	redisaddr := flag.String("rdis", "redis:6379", "redis addr")
+	v2raygrpc := flag.String("v2", "v2ray:8080", "v2ray grpc endpoint address")
 	flag.Parse()
 
 	RDB = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     *redisaddr,
 		Password: "",
 		DB:       0,
 	})
 
-	cc := v2rpc.GetGrpcConn("127.0.0.1:8080")
+	cc := v2rpc.GetGrpcConn(*v2raygrpc)
 
 	http.HandleFunc(fmt.Sprintf("/v2api/%s", *tgToken), func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -96,5 +98,5 @@ func main() {
 
 	})
 
-	http.ListenAndServe("127.0.0.1:2020", nil)
+	http.ListenAndServe("0.0.0.0:2020", nil)
 }
