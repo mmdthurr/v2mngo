@@ -51,7 +51,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 					return
 				}
 				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-				bt.SendMessage(fmt.Sprintf("@naharlo - /start \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("@naharlo \n- /start\n- /revoke \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 
 			} else {
 				used := v2rpc.GetUserStat(strconv.Itoa(update.Message.From.Id), cc)
@@ -60,8 +60,30 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 			}
 
 		}
+	case "/revoke":
+		{
+			v2rpc.RemoveUser(strconv.Itoa(update.Message.From.Id), cc)
+			new_uuid := uuid.New()
+			_, err := v2rpc.Adduser(new_uuid.String(), strconv.Itoa(update.Message.From.Id), cc)
+			if err != nil {
+				bt.SendMessage("failed", update.Message.From.Id)
+				log.Print("err: ", err)
+				return
+			}
+			RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
+			bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+		}
 
 	}
+}
+func startup(cc *grpc.ClientConn) {
+	iter := RDB.Scan(ctx, 0, "prefix:*", 0).Iterator()
+	for iter.Next(ctx) {
+		userUUid, _ := RDB.Get(ctx, iter.Val()).Result()
+		v2rpc.Adduser(userUUid, iter.Val(), cc)
+
+	}
+
 }
 
 func main() {
@@ -77,6 +99,8 @@ func main() {
 	})
 
 	cc := v2rpc.GetGrpcConn(*v2raygrpc)
+
+	startup(cc)
 
 	http.HandleFunc(fmt.Sprintf("/v2api/%s", *tgToken), func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
