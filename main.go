@@ -71,7 +71,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 				return
 			}
 			RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-			bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+			bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 		}
 
 	}
