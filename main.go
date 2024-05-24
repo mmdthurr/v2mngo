@@ -51,7 +51,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 					return
 				}
 				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-				bt.SendMessage(fmt.Sprintf("@naharlo \n- /start\n- /revoke \n\nhttps://ar3642.top/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("@naharlo \n- /start\n- /revoke \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 
 			} else {
 				used := v2rpc.GetUserStat(strconv.Itoa(update.Message.From.Id), cc)
@@ -77,7 +77,7 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 	}
 }
 func startup(cc *grpc.ClientConn) {
-	iter := RDB.Scan(ctx, 0, "prefix:*", 0).Iterator()
+	iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
 		userUUid, _ := RDB.Get(ctx, iter.Val()).Result()
 		v2rpc.Adduser(userUUid, iter.Val(), cc)
@@ -116,7 +116,13 @@ func main() {
 			}
 		default:
 			{
-				w.Write([]byte("okeymokey"))
+				rspBody := ""
+				iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
+				for iter.Next(ctx) {
+					used := v2rpc.GetUserStat(iter.Val(), cc)
+					rspBody = rspBody + fmt.Sprintf("%s -- %s\n", iter.Val(), ByteCountSI(int64(used)))
+				}
+				w.Write([]byte(rspBody))
 			}
 		}
 
