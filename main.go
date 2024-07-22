@@ -19,6 +19,11 @@ import (
 var RDB *redis.Client
 var ctx = context.Background()
 
+type Userinfo struct {
+	Usedbw int
+	UserId int
+}
+
 func ByteCountSI(b int64) string {
 	const unit = 1000
 	if b < unit {
@@ -116,13 +121,16 @@ func main() {
 			}
 		default:
 			{
-				rspBody := ""
+				var usrlis []Userinfo
 				iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
 				for iter.Next(ctx) {
 					used := v2rpc.GetUserStat(iter.Val(), cc)
-					rspBody = rspBody + fmt.Sprintf("%s -- %s\n", iter.Val(), ByteCountSI(int64(used)))
+					userid, _ := strconv.Atoi(iter.Val())
+					uo := Userinfo{Usedbw: int(used), UserId: userid}
+					usrlis = append(usrlis, uo)
 				}
-				w.Write([]byte(rspBody))
+				j, _ := json.Marshal(usrlis)
+				w.Write(j)
 			}
 		}
 
