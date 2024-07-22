@@ -20,8 +20,9 @@ var RDB *redis.Client
 var ctx = context.Background()
 
 type Userinfo struct {
-	Usedbw int
-	UserId int
+	Usedbwpretty string
+	Usedbw       int
+	UserId       int
 }
 
 func ByteCountSI(b int64) string {
@@ -126,7 +127,7 @@ func main() {
 				for iter.Next(ctx) {
 					used := v2rpc.GetUserStat(iter.Val(), cc)
 					userid, _ := strconv.Atoi(iter.Val())
-					uo := Userinfo{Usedbw: int(used), UserId: userid}
+					uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
 					usrlis = append(usrlis, uo)
 				}
 				j, _ := json.Marshal(usrlis)
