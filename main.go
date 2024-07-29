@@ -85,7 +85,10 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 func startup(cc *grpc.ClientConn) {
 	iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
 	for iter.Next(ctx) {
-		userUUid, _ := RDB.Get(ctx, iter.Val()).Result()
+		userUUid, err := RDB.Get(ctx, iter.Val()).Result()
+		if err != nil {
+			log.Print("err startup iter: ", err)
+		}
 		v2rpc.Adduser(userUUid, iter.Val(), cc)
 
 	}
@@ -126,7 +129,8 @@ func main() {
 				iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
 				for iter.Next(ctx) {
 					used := v2rpc.GetUserStat(iter.Val(), cc)
-					userid, _ := strconv.Atoi(iter.Val())
+					userid, err := strconv.Atoi(iter.Val())
+					log.Print("iter in default method: ", err)
 					uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
 					usrlis = append(usrlis, uo)
 				}
