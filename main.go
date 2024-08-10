@@ -60,24 +60,35 @@ func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
 				bt.SendMessage(fmt.Sprintf("@naharlo \n- /start\n- /revoke \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 
 			} else {
-				used := v2rpc.GetUserStat(strconv.Itoa(update.Message.From.Id), cc)
-				bt.SendMessage(fmt.Sprintf("uuid: %s \n\ntransfered: %s", userUUid, ByteCountSI(int64(used))), update.Message.From.Id)
+				if userUUid == "BlOCKED" {
+					bt.SendMessage("you are blocked", update.Message.From.Id)
+				} else {
+					used := v2rpc.GetUserStat(strconv.Itoa(update.Message.From.Id), cc)
+					bt.SendMessage(fmt.Sprintf("uuid: %s \n\ntransfered: %s", userUUid, ByteCountSI(int64(used))), update.Message.From.Id)
+
+				}
 
 			}
 
 		}
 	case "/revoke":
 		{
-			v2rpc.RemoveUser(strconv.Itoa(update.Message.From.Id), cc)
-			new_uuid := uuid.New()
-			_, err := v2rpc.Adduser(new_uuid.String(), strconv.Itoa(update.Message.From.Id), cc)
-			if err != nil {
-				bt.SendMessage("failed", update.Message.From.Id)
-				log.Print("err: ", err)
-				return
+			userUUid, _ := RDB.Get(ctx, strconv.Itoa(update.Message.From.Id)).Result()
+			if userUUid == "BLOCKED" {
+				bt.SendMessage("you are blocked", update.Message.From.Id)
+
+			} else {
+				v2rpc.RemoveUser(strconv.Itoa(update.Message.From.Id), cc)
+				new_uuid := uuid.New()
+				_, err := v2rpc.Adduser(new_uuid.String(), strconv.Itoa(update.Message.From.Id), cc)
+				if err != nil {
+					bt.SendMessage("failed", update.Message.From.Id)
+					log.Print("err: ", err)
+					return
+				}
+				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
+				bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 			}
-			RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-			bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 		}
 
 	}
