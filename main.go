@@ -42,10 +42,7 @@ func ByteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
-	bt = tg.Bot{
-		Token: tk,
-	}
+func procIncome(update tg.Update, cc *grpc.ClientConn) {
 
 	switch update.Message.Text {
 	case "/start":
@@ -115,6 +112,10 @@ func main() {
 	v2raygrpc := flag.String("v2", "v2ray:8080", "v2ray grpc endpoint address")
 	flag.Parse()
 
+	bt = tg.Bot{
+		Token: *tgToken,
+	}
+
 	RDB = redis.NewClient(&redis.Options{
 		Addr:     *redisaddr,
 		Password: "",
@@ -135,7 +136,7 @@ func main() {
 					fmt.Printf("err: %v\n", err)
 				}
 				w.WriteHeader(http.StatusOK)
-				go procIncome(up, *tgToken, cc)
+				go procIncome(up, cc)
 			}
 		default:
 			{
