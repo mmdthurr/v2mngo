@@ -10,6 +10,7 @@ import (
 	"mmd/v2mngo/v2rpc"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
@@ -18,6 +19,8 @@ import (
 
 var RDB *redis.Client
 var ctx = context.Background()
+var bt tg.Bot
+var cc *grpc.ClientConn
 
 type Userinfo struct {
 	Usedbwpretty string
@@ -40,7 +43,7 @@ func ByteCountSI(b int64) string {
 }
 
 func procIncome(update tg.Update, tk string, cc *grpc.ClientConn) {
-	bt := tg.Bot{
+	bt = tg.Bot{
 		Token: tk,
 	}
 
@@ -118,11 +121,11 @@ func main() {
 		DB:       0,
 	})
 
-	cc := v2rpc.GetGrpcConn(*v2raygrpc)
+	cc = v2rpc.GetGrpcConn(*v2raygrpc)
 
 	startup(cc)
 
-	http.HandleFunc(fmt.Sprintf("/v2api/%s", *tgToken), func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(fmt.Sprintf("/v2api/%s/", *tgToken), func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
 			{
@@ -136,17 +139,54 @@ func main() {
 			}
 		default:
 			{
-				var usrlis []Userinfo
-				iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
-				for iter.Next(ctx) {
-					used := v2rpc.GetUserStat(iter.Val(), cc)
-					userid, err := strconv.Atoi(iter.Val())
-					log.Print("iter in default method: ", err)
-					uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
-					usrlis = append(usrlis, uo)
+				urlPath := r.URL.Path
+
+				parts := strings.Split(urlPath, "/")
+				if len(parts) != 5 {
+					var usrlis []Userinfo
+					iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
+					for iter.Next(ctx) {
+						used := v2rpc.GetUserStat(iter.Val(), cc)
+						userid, err := strconv.Atoi(iter.Val())
+						log.Print("iter in default method: ", err)
+						uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
+						usrlis = append(usrlis, uo)
+					}
+					j, _ := json.Marshal(usrlis)
+					w.Write(j)
 				}
-				j, _ := json.Marshal(usrlis)
-				w.Write(j)
+				cmd := parts[3]
+				uid := parts[4]
+				switch cmd {
+				case "block":
+					{
+						_, err := RDB.Get(ctx, uid).Result()
+						if err != nil {
+							return
+						}
+						v2rpc.RemoveUser(uid, cc)
+						RDB.Set(ctx, uid, "BLOCKED", 0)
+
+					}
+				case "unblock":
+					{
+						uidint, err := strconv.Atoi(uid)
+						if err != nil {
+							return
+						}
+						new_uuid := uuid.New()
+						_, err = v2rpc.Adduser(new_uuid.String(), uid, cc)
+						if err != nil {
+							bt.SendMessage("failed to unblock", uidint)
+							log.Print("err: ", err)
+							return
+						}
+						RDB.Set(ctx, uid, new_uuid.String(), 0)
+						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), uidint)
+
+					}
+				}
+
 			}
 		}
 
