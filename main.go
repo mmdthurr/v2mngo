@@ -154,6 +154,7 @@ func main() {
 					}
 					j, _ := json.Marshal(usrlis)
 					w.Write(j)
+					return
 				}
 				cmd := parts[3]
 				uid := parts[4]
