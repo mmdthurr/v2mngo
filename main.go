@@ -26,6 +26,7 @@ type Userinfo struct {
 	Usedbwpretty string
 	Usedbw       int
 	UserId       int
+	userUuid     string
 }
 
 func ByteCountSI(b int64) string {
@@ -100,7 +101,7 @@ func startup(cc *grpc.ClientConn) {
 		if err != nil {
 			log.Print("err startup iter: ", err)
 		}
-		if iter.Val() != "BLOCKED" {
+		if userUUid != "BLOCKED" {
 			v2rpc.Adduser(userUUid, iter.Val(), cc)
 		}
 	}
@@ -150,10 +151,13 @@ func main() {
 					for iter.Next(ctx) {
 						used := v2rpc.GetUserStat(iter.Val(), cc)
 						if used != 0 {
-							userid, err := strconv.Atoi(iter.Val())
-							log.Print("iter in default method: ", err)
+							userid, _ := strconv.Atoi(iter.Val())
+							userUUid, err := RDB.Get(ctx, iter.Val()).Result()
+							if err != nil {
+								log.Print("err startup iter: ", err)
+							}
 
-							uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
+							uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid, userUuid: userUUid}
 							usrlis = append(usrlis, uo)
 						}
 
