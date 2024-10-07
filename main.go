@@ -26,7 +26,6 @@ type Userinfo struct {
 	Usedbwpretty string
 	Usedbw       int
 	UserId       int
-	userUuid     string
 }
 
 func ByteCountSI(b int64) string {
@@ -152,12 +151,7 @@ func main() {
 						used := v2rpc.GetUserStat(iter.Val(), cc)
 						if used != 0 {
 							userid, _ := strconv.Atoi(iter.Val())
-							userUUid, err := RDB.Get(ctx, iter.Val()).Result()
-							if err != nil {
-								log.Print("err startup iter: ", err)
-							}
-
-							uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid, userUuid: userUUid}
+							uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
 							usrlis = append(usrlis, uo)
 						}
 
