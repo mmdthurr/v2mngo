@@ -100,8 +100,9 @@ func startup(cc *grpc.ClientConn) {
 		if err != nil {
 			log.Print("err startup iter: ", err)
 		}
-		v2rpc.Adduser(userUUid, iter.Val(), cc)
-
+		if iter.Val() != "BLOCKED" {
+			v2rpc.Adduser(userUUid, iter.Val(), cc)
+		}
 	}
 
 }
@@ -148,10 +149,14 @@ func main() {
 					iter := RDB.Scan(ctx, 0, "*", 0).Iterator()
 					for iter.Next(ctx) {
 						used := v2rpc.GetUserStat(iter.Val(), cc)
-						userid, err := strconv.Atoi(iter.Val())
-						log.Print("iter in default method: ", err)
-						uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
-						usrlis = append(usrlis, uo)
+						if used != 0 {
+							userid, err := strconv.Atoi(iter.Val())
+							log.Print("iter in default method: ", err)
+
+							uo := Userinfo{Usedbwpretty: ByteCountSI(int64(used)), Usedbw: int(used), UserId: userid}
+							usrlis = append(usrlis, uo)
+						}
+
 					}
 					j, _ := json.Marshal(usrlis)
 					w.Write(j)
@@ -164,28 +169,30 @@ func main() {
 					{
 						_, err := RDB.Get(ctx, uid).Result()
 						if err != nil {
+							w.Write([]byte(err.Error()))
 							return
 						}
-						v2rpc.RemoveUser(uid, cc)
+						_, err = v2rpc.RemoveUser(uid, cc)
 						RDB.Set(ctx, uid, "BLOCKED", 0)
-
+						w.Write([]byte(err.Error()))
 					}
 				case "unblock":
 					{
 						uidint, err := strconv.Atoi(uid)
 						if err != nil {
+							w.Write([]byte(err.Error()))
 							return
 						}
 						new_uuid := uuid.New()
 						_, err = v2rpc.Adduser(new_uuid.String(), uid, cc)
 						if err != nil {
 							bt.SendMessage("failed to unblock", uidint)
-							log.Print("err: ", err)
+							w.Write([]byte(err.Error()))
 							return
 						}
 						RDB.Set(ctx, uid, new_uuid.String(), 0)
 						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), uidint)
-
+						w.Write([]byte("unblocked"))
 					}
 				}
 
