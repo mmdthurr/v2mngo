@@ -57,7 +57,7 @@ func procIncome(update tg.Update, cc *grpc.ClientConn) {
 					return
 				}
 				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-				bt.SendMessage(fmt.Sprintf("@naharlo \n- /start\n- /revoke \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("mmdta.ir \n@naharlo \n- /start\n- /revoke \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
 
 			} else {
 				if userUUid == "BlOCKED" {
@@ -111,6 +111,8 @@ func main() {
 	tgToken := flag.String("tg", "bot123", "telegram token")
 	redisaddr := flag.String("rdis", "redis:6379", "redis addr")
 	v2raygrpc := flag.String("v2", "v2ray:8080", "v2ray grpc endpoint address")
+	name := flag.String("name", "usa", "name")
+
 	flag.Parse()
 
 	bt = tg.Bot{
@@ -189,7 +191,7 @@ func main() {
 							return
 						}
 						RDB.Set(ctx, uid, new_uuid.String(), 0)
-						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), uidint)
+						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s&srv=%s", new_uuid.String(), *name), uidint)
 						w.Write([]byte("unblocked"))
 					}
 				}
