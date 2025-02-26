@@ -42,7 +42,7 @@ func ByteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func procIncome(update tg.Update, cc *grpc.ClientConn) {
+func procIncome(update tg.Update, cc *grpc.ClientConn, domain string, name string) {
 
 	switch update.Message.Text {
 	case "/start":
@@ -57,7 +57,7 @@ func procIncome(update tg.Update, cc *grpc.ClientConn) {
 					return
 				}
 				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-				bt.SendMessage(fmt.Sprintf("mmdta.ir \n@naharlo \n- /start\n- /revoke \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("mmdta.ir \n@naharlo \n- /start\n- /revoke\n\nhttps://%s/stat.html?uuid=%s&srv=%s", domain, new_uuid.String(), name), update.Message.From.Id)
 
 			} else {
 				if userUUid == "BlOCKED" {
@@ -87,7 +87,7 @@ func procIncome(update tg.Update, cc *grpc.ClientConn) {
 					return
 				}
 				RDB.Set(ctx, strconv.Itoa(update.Message.From.Id), new_uuid.String(), 0)
-				bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s", new_uuid.String()), update.Message.From.Id)
+				bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://%s/stat.html?uuid=%s&srv=%s", domain, new_uuid.String(), name), update.Message.From.Id)
 			}
 		}
 
@@ -113,6 +113,7 @@ func main() {
 	v2raygrpc := flag.String("v2", "v2ray:8080", "v2ray grpc endpoint address")
 	name := flag.String("name", "usa", "name")
 
+	domain := flag.String("d", "tci.news", "domain")
 	flag.Parse()
 
 	bt = tg.Bot{
@@ -139,7 +140,7 @@ func main() {
 					fmt.Printf("err: %v\n", err)
 				}
 				w.WriteHeader(http.StatusOK)
-				go procIncome(up, cc)
+				go procIncome(up, cc, *domain, *name)
 			}
 		default:
 			{
@@ -191,7 +192,7 @@ func main() {
 							return
 						}
 						RDB.Set(ctx, uid, new_uuid.String(), 0)
-						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://choskosh.cfd/stat.html?uuid=%s&srv=%s", new_uuid.String(), *name), uidint)
+						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://%s/stat.html?uuid=%s&srv=%s", *domain, new_uuid.String(), *name), uidint)
 						w.Write([]byte("unblocked"))
 					}
 				}
