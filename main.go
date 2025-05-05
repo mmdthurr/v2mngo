@@ -153,11 +153,9 @@ func main() {
 				if !ok {
 					var users []db.User
 					DB.Find(&users, "blocked = ?", false)
-					for _, user := range users {
-
-						current_transfer := v2rpc.GetUserStat(strconv.Itoa(int(user.TgId)), cc)
-						user.Quoata = uint(current_transfer)
-
+					for i, usr := range users {
+						usr.Quoata = v2rpc.GetUserStat(strconv.Itoa(int(usr.TgId)), cc)
+						users[i] = usr
 					}
 					j, _ := json.Marshal(users)
 					w.Write(j)
@@ -168,7 +166,7 @@ func main() {
 				case "block":
 					{
 						tgid, ok := qs["tgid"]
-						if ok {
+						if !ok {
 							w.Write([]byte("no tgid"))
 							return
 						}
@@ -192,7 +190,7 @@ func main() {
 				case "unblock":
 					{
 						tgid, ok := qs["tgid"]
-						if ok {
+						if !ok {
 							w.Write([]byte("no tgid"))
 							return
 						}

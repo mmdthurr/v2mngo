@@ -16,7 +16,7 @@ type User struct {
 	TgId              uint
 	Blocked           bool `gorm:"default: false"`
 	LastBlockedReason string
-	Quoata            uint
+	Quoata            uint64
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
