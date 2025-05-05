@@ -102,7 +102,7 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 
 func startup(cc *grpc.ClientConn) {
 	var users []db.User
-	DB.Find(&users, "blocked: ?", false)
+	DB.Find(&users, "blocked = ?", false)
 	for _, user := range users {
 
 		v2rpc.Adduser(strconv.Itoa(int(user.TgId)), user.UUID, cc)
@@ -152,7 +152,7 @@ func main() {
 
 				if !ok {
 					var users []db.User
-					DB.Find(&users, "blocked: ?", false)
+					DB.Find(&users, "blocked = ?", false)
 					for _, user := range users {
 
 						current_transfer := v2rpc.GetUserStat(strconv.Itoa(int(user.TgId)), cc)
