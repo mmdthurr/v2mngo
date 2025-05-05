@@ -23,12 +23,6 @@ var bt tg.Bot
 var cc *grpc.ClientConn
 var DB *gorm.DB
 
-type Userinfo struct {
-	Usedbwpretty string
-	Usedbw       int
-	UserId       int
-}
-
 func ByteCountSI(b int64) string {
 	const unit = 1000
 	if b < unit {
@@ -174,7 +168,7 @@ func main() {
 						user := db.User{TgId: uint(tgidint)}
 						DB.First(&user)
 
-						_, err = v2rpc.RemoveUser(user.UUID, cc)
+						_, err = v2rpc.RemoveUser(tgid[0], cc)
 						if err != nil {
 							w.Write([]byte("failed"))
 							return
