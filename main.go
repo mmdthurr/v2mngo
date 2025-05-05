@@ -202,6 +202,7 @@ func main() {
 						}
 
 						user.UUID = new_uuid.String()
+						user.Blocked = false
 						DB.Save(user)
 
 						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://%s/stat.html?uuid=%s&srv=%s", *domain, new_uuid.String(), *name), tgidint)
