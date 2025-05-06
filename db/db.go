@@ -13,7 +13,7 @@ type User struct {
 	UUID              string
 	Mail              string
 	Phone             string
-	TgId              uint
+	TgId              int
 	Blocked           bool `gorm:"default: false"`
 	LastBlockedReason string
 	Quoata            uint64
