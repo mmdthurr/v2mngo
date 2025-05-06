@@ -23,6 +23,9 @@ func (bt Bot) SendMessage(msg string, chat_id int) {
 
 	os.Setenv("HTTP_PROXY", "http://127.0.0.1:1060")
 	_, err := http.Post(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", bt.Token), "application/json", bytes.NewBuffer(tg_json))
+	if err != nil {
+		log.Printf("tg: sendmsg: err: %s", err)
 
-	log.Printf("tg: SendMessage: err: %v\n", err)
+	}
+
 }

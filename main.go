@@ -103,7 +103,7 @@ func startup(cc *grpc.ClientConn) {
 
 	for _, user := range users {
 
-		_, err := v2rpc.Adduser(strconv.Itoa(int(user.TgId)), user.UUID, cc)
+		_, err := v2rpc.Adduser(user.UUID, strconv.Itoa(int(user.TgId)), cc)
 		if err != nil {
 			log.Printf("this is user: %s", err)
 		}
