@@ -19,7 +19,7 @@ import (
 
 var bt tg.Bot
 var cc *grpc.ClientConn
-var DB *gorm.DB
+var datab *gorm.DB
 
 func ByteCountSI(b int64) string {
 	const unit = 1000
@@ -41,7 +41,7 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 	case "/start":
 		{
 			user := db.User{}
-			result := DB.FirstOrCreate(&user, db.User{TgId: update.Message.From.Id})
+			result := datab.FirstOrCreate(&user, db.User{TgId: update.Message.From.Id})
 
 			if result.RowsAffected == 1 {
 				log.Println("new user created")
@@ -53,7 +53,7 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 					return
 				}
 				user.UUID = new_uuid.String()
-				DB.Save(&user)
+				datab.Save(&user)
 
 				//wellcome message
 				bt.SendMessage(fmt.Sprintf("mmdta.ir \n@naharlo \n- /start\n- /revoke\n\nhttps://%s/stat.html?uuid=%s&srv=%s", domain, new_uuid.String(), name), update.Message.From.Id)
@@ -71,7 +71,7 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 	case "/revoke":
 		{
 			user := db.User{}
-			result := DB.FirstOrCreate(&user, db.User{TgId: update.Message.From.Id})
+			result := datab.FirstOrCreate(&user, db.User{TgId: update.Message.From.Id})
 
 			if result.RowsAffected == 1 {
 				bt.SendMessage("mmdta.ir \n@naharlo \n- /start\n- /revoke\n\n", update.Message.From.Id)
@@ -89,7 +89,7 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 				}
 				user.UUID = new_uuid.String()
 				// update
-				DB.Save(&user)
+				datab.Save(&user)
 				bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://%s/stat.html?uuid=%s&srv=%s", domain, new_uuid.String(), name), update.Message.From.Id)
 			}
 		}
@@ -99,10 +99,14 @@ func HandleUpdate(update tg.Update, cc *grpc.ClientConn, domain string, name str
 
 func startup(cc *grpc.ClientConn) {
 	var users []db.User
-	DB.Find(&users, "blocked = ?", false)
+	datab.Where("blocked = ?", false).Find(&users)
+
 	for _, user := range users {
 
-		v2rpc.Adduser(strconv.Itoa(int(user.TgId)), user.UUID, cc)
+		_, err := v2rpc.Adduser(strconv.Itoa(int(user.TgId)), user.UUID, cc)
+		if err != nil {
+			log.Printf("this is user: %s", err)
+		}
 	}
 
 }
@@ -121,12 +125,14 @@ func main() {
 		Token: *tgToken,
 	}
 
-	DB, err := db.GetDB(*database_path)
-
+	dbinit, err := db.GetDB(*database_path)
+	datab = dbinit
 	if err != nil {
 		log.Fatal(err)
 	}
 	cc = v2rpc.GetGrpcConn(*v2raygrpc)
+
+	//startup
 	startup(cc)
 
 	http.HandleFunc(fmt.Sprintf("/v2api/%s/", *tgToken), func(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +155,7 @@ func main() {
 
 				if !ok {
 					var users []db.User
-					DB.Find(&users, "blocked = ?", false)
+					datab.Find(&users, "blocked = ?", false)
 					for i, usr := range users {
 						usr.Quoata = v2rpc.GetUserStat(strconv.Itoa(int(usr.TgId)), cc)
 						users[i] = usr
@@ -169,7 +175,7 @@ func main() {
 						}
 						tgidint, _ := strconv.Atoi(tgid[0])
 						user := db.User{TgId: tgidint}
-						DB.First(&user)
+						datab.First(&user)
 
 						_, err = v2rpc.RemoveUser(tgid[0], cc)
 						if err != nil {
@@ -181,7 +187,7 @@ func main() {
 						if ok {
 							user.LastBlockedReason = blr[0]
 						}
-						DB.Save(&user)
+						datab.Save(&user)
 						w.Write([]byte("blocked user"))
 					}
 				case "unblock":
@@ -193,7 +199,7 @@ func main() {
 						}
 						tgidint, _ := strconv.Atoi(tgid[0])
 						user := db.User{TgId: tgidint}
-						DB.First(&user)
+						datab.First(&user)
 
 						new_uuid := uuid.New()
 						_, err = v2rpc.Adduser(new_uuid.String(), tgid[0], cc)
@@ -207,7 +213,7 @@ func main() {
 
 						user.UUID = new_uuid.String()
 						user.Blocked = false
-						DB.Save(user)
+						datab.Save(user)
 
 						bt.SendMessage(fmt.Sprintf("new uuid generated \n\nhttps://%s/stat.html?uuid=%s&srv=%s", *domain, new_uuid.String(), *name), tgidint)
 						w.Write([]byte("unblocked"))
