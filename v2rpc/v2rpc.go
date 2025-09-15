@@ -4,20 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/xtls/xray-core/proxy/vless"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"v2ray.com/core/app/proxyman/command"
 	stat "v2ray.com/core/app/stats/command"
-
 	"v2ray.com/core/common/protocol"
 	"v2ray.com/core/common/serial"
-	"v2ray.com/core/proxy/vmess"
 )
 
 func GetGrpcConn(addr string) *grpc.ClientConn {
 
-	cc, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	cc, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		fmt.Printf("err: %v\n", err)
 	}
@@ -25,17 +24,16 @@ func GetGrpcConn(addr string) *grpc.ClientConn {
 }
 
 func Adduser(uuidstr, mail string, cc *grpc.ClientConn) (*command.AlterInboundResponse, error) {
-	hsc := command.NewHandlerServiceClient(cc)
 
+	hsc := command.NewHandlerServiceClient(cc)
 	req := command.AlterInboundRequest{
 		Tag: "proxy",
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
 			User: &protocol.User{
 				Level: 0,
 				Email: mail,
-				Account: serial.ToTypedMessage(&vmess.Account{
-					Id:      uuidstr,
-					AlterId: 0,
+				Account: serial.ToTypedMessage(&vless.Account{
+					Id: uuidstr,
 				}),
 			},
 		}),
