@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/xtls/xray-core/app/proxyman/command"
+	stat "github.com/xtls/xray-core/app/stats/command"
+	"github.com/xtls/xray-core/common/protocol"
+	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/proxy/vless"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"v2ray.com/core/app/proxyman/command"
-	stat "v2ray.com/core/app/stats/command"
-	"v2ray.com/core/common/protocol"
-	"v2ray.com/core/common/serial"
 )
 
 func GetGrpcConn(addr string) *grpc.ClientConn {
